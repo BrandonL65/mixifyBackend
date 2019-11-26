@@ -2,16 +2,13 @@ const express = require("express");
 const router = express.Router();
 const fetch = require("node-fetch");
 const encodeFormData = require("../helperFunctions/encodeFormData.js");
+const querystring = require("querystring");
 //once user logs in, reaches here
-
-let accessToken = "";
-let refreshToken = "";
-let userID = "";
 
 //user logs in
 router.get("/login", async (req, res) => {
-  let scope = "playlist-read-private user-library-read user-read-playback-state user-read-currently-playing user-read-email user-read-private"
-  res.redirect(`https://accounts.spotify.com/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=${process.env.REDIRECTURI}&scope=${scope}`);
+  let scope = "user-modify-playback-state user-read-playback-state user-read-currently-playing user-library-modify user-library-read playlist-read-private playlist-modify-public playlist-modify-private playlist-read-collaborative user-read-private user-read-email streaming"
+  res.redirect(`https://accounts.spotify.com/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=${process.env.REDIRECTURI}&scope=${scope}&show_dialog=true`);
 })
 
 //user accepts or denies the login
@@ -32,20 +29,19 @@ router.get("/logged", async (req,res) => {
       "Accept": "application/json"
     },
     body: encodeFormData(body)
-  })
+  }) 
   .then(resp => resp.json())
   .then(data => {
-    accessToken = data.access_token;
-    refreshToken = data.refresh_token;
-    res.json(data);
+    let query = querystring.stringify(data);
+    res.redirect(`http://localhost:3000/${query}`)
   });
 })
 
 //refresh access token 
-router.get("/refreshToken", async (req,res) => {
+router.get("/refreshToken/:refreshKey", async (req,res) => {
   let urlEncodedBody = {
     grant_type: "refresh_token",
-    refresh_token: refreshToken
+    refresh_token: req.params.refreshKey
   }
   await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
@@ -60,10 +56,10 @@ router.get("/refreshToken", async (req,res) => {
 })
 
 //gives access token for user data
-router.get("/getUser", async(req,res) => {
+router.get("/getUser/:token", async(req,res) => {
   await fetch("https://api.spotify.com/v1/me", {
     headers: {
-      "Authorization": `Bearer ${accessToken}`
+      "Authorization": `Bearer ${req.params.token}`
     }
   })
   .then(response => response.json())
@@ -74,10 +70,21 @@ router.get("/getUser", async(req,res) => {
 })
 
 //get all playlists 
-router.get("/playlists", async (req,res) => {
-  await fetch(`https://api.spotify.com/v1/users/${userID}/playlists`, {
+router.get("/playlists/:token", async (req,res) => {
+  await fetch(`https://api.spotify.com/v1/me/playlists`, {
     headers: {
-      "Authorization": `Bearer ${accessToken}`
+      "Authorization": `Bearer ${req.params.token}`
+    }
+  })
+  .then(resp => resp.json())
+  .then(data => res.json(data));
+})
+
+//get a playlist's tracks 
+router.get("/playlists/tracks/:token/:playlistID", async(req,res) => {
+  fetch(`https://api.spotify.com/v1/playlists/${req.params.playlistID}/tracks`, {
+    headers: {
+      "Authorization": `Bearer ${req.params.token}`
     }
   })
   .then(resp => resp.json())
