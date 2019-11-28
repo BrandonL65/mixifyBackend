@@ -91,4 +91,18 @@ router.get("/playlists/tracks/:token/:playlistID", async(req,res) => {
   .then(data => res.json(data));
 })
 
+//MAKE SEARCH ENDPOINT
+router.post("/search/:token", async (req,res) => {
+  //split up the body so it can be encoded in the query 
+  let unchangedQueryBody = req.body.message.split(" ");
+  let changedQueryBody = unchangedQueryBody.join("%20");
+  fetch(`https://api.spotify.com/v1/search?q=${changedQueryBody}&type=track`, {
+    headers: {
+      "Authorization": `Bearer ${req.params.token}`
+    }
+  })
+  .then( resp => resp.json())
+  .then( data => res.json(data));
+})
+
 module.exports = router;
