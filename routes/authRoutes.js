@@ -96,7 +96,7 @@ router.post("/search/:token", async (req,res) => {
   //split up the body so it can be encoded in the query 
   let unchangedQueryBody = req.body.message.split(" ");
   let changedQueryBody = unchangedQueryBody.join("%20");
-  fetch(`https://api.spotify.com/v1/search?q=${changedQueryBody}&type=track`, {
+  fetch(`https://api.spotify.com/v1/search?q=${changedQueryBody}&type=artist,track`, {
     headers: {
       "Authorization": `Bearer ${req.params.token}`
     }
